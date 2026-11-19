@@ -101,6 +101,11 @@ ON "PeerRating" ("teamId", "raterId", "ratedUserId");
 CREATE INDEX "PeerRating_teamId_updatedAt_idx"
 ON "PeerRating" ("teamId", "updatedAt");
 
+-- Supports fetching a team's messages in timestamp order, including the
+-- latest-message query (Q18) and the chronological message query (Q17).
+CREATE INDEX "Message_teamId_createdAt_idx"
+ON "Message" (("data"->>'teamId'), ("data"->>'createdAt') DESC);
+
 
 -- ============================================================
 -- END OF SCHEMA
