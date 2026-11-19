@@ -10,7 +10,7 @@ SELECT
     data->>'createdAt' AS sent_at
 FROM "Message"
 WHERE data->>'teamId' = 'TEAM_ID_HERE'
-ORDER BY data->>'createdAt';
+ORDER BY data->>'createdAt', id;
 
 
 -- Q18. Display the latest 20 messages of a team.
@@ -21,7 +21,7 @@ SELECT
     data->>'createdAt' AS sent_at
 FROM "Message"
 WHERE data->>'teamId' = 'TEAM_ID_HERE'
-ORDER BY data->>'createdAt' DESC
+ORDER BY data->>'createdAt' DESC, id DESC
 LIMIT 20;
 
 
