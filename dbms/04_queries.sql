@@ -31,7 +31,8 @@ SELECT
     COUNT(*) AS total_messages
 FROM "Message"
 WHERE data->>'teamId' = 'TEAM_ID_HERE'
-GROUP BY data->>'userName';
+GROUP BY data->>'userName'
+ORDER BY total_messages DESC, user_name ASC;
 
 
 -- ============================================================
