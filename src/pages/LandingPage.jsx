@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
 import SimpleBackground from '../components/SimpleBackground';
+import WorkspaceModal from '../components/WorkspaceModal';
 import logoImg from '../images/Logo.png';
 
 export default function LandingPage() {
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [workspaceMode, setWorkspaceMode] = useState('register');
+
+  const openWorkspace = (mode) => {
+    setWorkspaceMode(mode);
+    setWorkspaceOpen(true);
+  };
+
   // Handle smooth scroll for anchor links
   const handleAnchorClick = (e, targetId) => {
     e.preventDefault();
@@ -58,10 +67,10 @@ export default function LandingPage() {
 
           <div className="header-actions">
             <ThemeToggle />
-            <button className="btn btn-ghost" type="button">
+            <button className="btn btn-ghost" type="button" onClick={() => openWorkspace('login')}>
               Log In
             </button>
-            <button className="btn btn-primary" type="button">
+            <button className="btn btn-primary" type="button" onClick={() => openWorkspace('register')}>
               Deploy Workspace
             </button>
           </div>
@@ -99,7 +108,7 @@ export default function LandingPage() {
                 </div>
                 <div className="proof-card">
                   <strong>Smart</strong>
-                  <span>AI-assisted task routing and role balance.</span>
+                  <span>Skill and workload-based assignment suggestions.</span>
                 </div>
               </div>
             </div>
@@ -227,7 +236,7 @@ export default function LandingPage() {
               <article className="step-card">
                 <div className="icon-badge">02</div>
                 <h3>Route the work</h3>
-                <p>Push tasks into the board, let the system assign intelligently, and keep deadlines visible from day one.</p>
+                <p>Push tasks into the board, get balanced assignment suggestions, and keep deadlines visible from day one.</p>
               </article>
               <article className="step-card">
                 <div className="icon-badge">03</div>
@@ -273,10 +282,10 @@ export default function LandingPage() {
               <h2>Let's build something cool</h2>
               <p>Set up your team's workspace and try out CollabSpace for your next big assignment.</p>
               <div className="cta-actions">
-                <button className="btn btn-primary" type="button">
+                <button className="btn btn-primary" type="button" onClick={() => openWorkspace('register')}>
                   Create Workspace →
                 </button>
-                <button className="btn btn-secondary" type="button">
+                <button className="btn btn-secondary" type="button" onClick={() => openWorkspace('login')}>
                   Log In
                 </button>
               </div>
@@ -318,6 +327,11 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      <WorkspaceModal
+        open={workspaceOpen}
+        initialMode={workspaceMode}
+        onClose={() => setWorkspaceOpen(false)}
+      />
     </div>
   );
 }

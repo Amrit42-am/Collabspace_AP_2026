@@ -1,283 +1,109 @@
-
 # Database Normalization
 
 ## 1. Overview
 
-The database consists of five tables:
-
-1. User
-2. Team
-3. Task
-4. Message
-5. PeerRating
-
-The schema follows a hybrid relational-document approach. Primary identifiers and selected attributes are stored as relational columns, while additional information is stored using PostgreSQL's JSONB data type.
-
-The purpose of normalization is to reduce data redundancy, prevent insertion, update and deletion anomalies, and maintain data consistency.
-
-This document analyzes the normalization of the five tables using their declared relational columns and constraints.
-
-**Note:** The internal structure of the JSONB columns is not specified in the provided schema. Therefore, normalization of attributes inside those JSON documents cannot be conclusively established.
-
----
-
-## 2. Functional Dependencies
-
-A functional dependency (FD) describes a relationship in which one attribute or group of attributes uniquely determines another attribute or group of attributes.
-
-The notation:
-
-`A → B`
-
-means that attribute A determines attribute B.
-
-### 2.1 User
-
-**Attributes:**
-
-- id (Primary Key)
-- email (Unique)
-- data (JSONB)
-
-**Functional Dependencies:**
-
-- `id → email, data`
-- `email → id, data`
-
-The `id` column is the primary key, while `email` has a unique constraint through a unique index.
-
-Both attributes uniquely identify a user record.
-
-**Candidate Keys:** `id`, `email`
-
-### 2.2 Team
-
-**Attributes:**
-
-- id (Primary Key)
-- data (JSONB)
-
-**Functional Dependency:**
-
-- `id → data`
-
-The `id` column uniquely identifies each team record.
-
-**Candidate Key:** `id`
-
-### 2.3 Task
-
-**Attributes:**
-
-- id (Primary Key)
-- data (JSONB)
-
-**Functional Dependency:**
-
-- `id → data`
-
-Each task is uniquely identified by its `id`.
-
-**Candidate Key:** `id`
-
-### 2.4 Message
-
-**Attributes:**
-
-- id (Primary Key)
-- data (JSONB)
-
-**Functional Dependency:**
-
-- `id → data`
-
-Each message is uniquely identified by its `id`.
-
-**Candidate Key:** `id`
-
-### 2.5 PeerRating
-
-**Attributes:**
-
-- id (Primary Key)
-- teamId
-- raterId
-- ratedUserId
-- updatedAt
-- data (JSONB)
-
-**Functional Dependencies:**
-
-- `id → teamId, raterId, ratedUserId, updatedAt, data`
-- `(teamId, raterId, ratedUserId) → id, updatedAt, data`
-
-The first dependency exists because `id` is the primary key.
-
-The second dependency exists because the combination of `teamId`, `raterId`, and `ratedUserId` has a unique constraint.
-
-This ensures that the same user cannot create multiple rating records for the same user within the same team.
-
-**Candidate Keys:**
-- `id`
-- `(teamId, raterId, ratedUserId)`
-
----
-
-## 3. Normalization Analysis
-
-### 3.1 First Normal Form (1NF)
-
-A relation satisfies First Normal Form when:
-
-- Each row is uniquely identifiable.
-- Each attribute contains a single value.
-- There are no repeating groups in the relational structure.
-
-**Analysis:**
-
-All five tables have primary keys that uniquely identify their records.
-
-The relational columns contain individual values rather than repeating groups.
-
-The `data` columns use JSONB, which can contain nested objects, arrays, and other JSON structures. Their internal contents cannot be verified against the supplied schema.
-
-Therefore, the outer relational structure satisfies the basic 1NF requirements, but strict atomicity and absence of repeating groups inside JSONB cannot be established without examining the stored documents.
-
-### 3.2 Second Normal Form (2NF)
-
-A relation satisfies Second Normal Form when:
-
-- It is already in 1NF.
-- Every non-key attribute is fully functionally dependent on the entire candidate key.
-- There are no partial dependencies.
-
-**Analysis:**
-
-The `User`, `Team`, `Task`, and `Message` tables have single-column primary keys. Therefore, partial dependencies cannot occur against these primary keys.
-
-The `PeerRating` table has a composite candidate key consisting of:
-
-`(teamId, raterId, ratedUserId)`
-
-The remaining attributes (`updatedAt` and `data`) depend on the complete combination rather than any individual component, based on the declared unique constraint and available schema.
-
-Therefore, there are no partial dependencies in the declared relational columns.
-
-All five tables satisfy 2NF at the outer relational level.
-
-### 3.3 Third Normal Form (3NF)
-
-A relation satisfies Third Normal Form when:
-
-- It is already in 2NF.
-- No non-key attribute is transitively dependent on a candidate key through another non-key attribute.
-
-**Analysis:**
-
-In the `User`, `Team`, `Task`, and `Message` tables, the declared non-key attributes depend directly on their respective primary keys.
-
-In `PeerRating`, the declared attributes depend on either of its candidate keys. No additional non-key-to-non-key functional dependencies are specified in the schema.
-
-Therefore, no transitive dependencies are identifiable among the declared relational columns.
-
-All five tables satisfy 3NF based on the available functional dependencies.
-
-### 3.4 Boyce-Codd Normal Form (BCNF)
-
-A relation satisfies BCNF when every determinant of a non-trivial functional dependency is a superkey.
-
-**Analysis:**
-
-For `User`, both `id` and `email` are candidate keys. Hence, both determinants are superkeys.
-
-For `Team`, `Task`, and `Message`, the only declared determinant is `id`, which is the primary key.
-
-For `PeerRating`, both `id` and the composite key `(teamId, raterId, ratedUserId)` are candidate keys.
-
-Therefore, every determinant in the declared functional dependencies is a candidate key.
-
-All five tables satisfy BCNF at the relational-column level, based on the declared constraints.
-
----
-
-## 4. Summary of Normal Forms
-
-| Table | Primary Key | Candidate Keys | Highest Verified Normal Form |
-|---|---|---|---|
-| User | id | id, email | BCNF |
-| Team | id | id | BCNF |
-| Task | id | id | BCNF |
-| Message | id | id | BCNF |
-| PeerRating | id | id, (teamId, raterId, ratedUserId) | BCNF |
-
-The BCNF assessment applies to the declared relational attributes and their functional dependencies. It does not establish the internal normalization of JSONB documents.
-
----
-
-## 5. JSONB and Database Design
-
-The schema uses JSONB columns in all five tables.
-
-JSONB allows flexible storage of structured information without requiring every attribute to be represented as a separate relational column.
-
-### Advantages
-
-- Supports flexible and nested data structures.
-- Allows additional attributes without changing the table structure.
-- Supports PostgreSQL JSON operators and functions.
-- Can be indexed using GIN indexes when required by query patterns.
-
-### Limitations
-
-- Individual JSON fields do not automatically receive relational constraints.
-- Foreign keys cannot directly reference values inside JSON documents.
-- Inconsistent document structures can introduce data-quality problems.
-- Queries involving frequently accessed JSON attributes may require additional indexes.
-- Functional dependencies inside JSON documents cannot be determined from the table definitions alone.
-
-The actual JSONB structures should be examined separately before making claims about their internal normalization.
-
----
-
-## 6. Keys, Constraints and Indexes
-
-The schema uses the following integrity constraints:
-
-| Table | Constraint | Purpose |
+The database contains eight relational tables matching the Prisma models:
+
+1. `users`
+2. `teams`
+3. `team_members`
+4. `team_invitations`
+5. `tasks`
+6. `task_assignees`
+7. `messages`
+8. `peer_ratings`
+
+Their primary keys, foreign keys, unique constraints, and indexes are defined
+in `03_schema.sql` and in the Prisma migration. Fields used for relationships
+and frequent queries are ordinary SQL columns. The remaining JSONB fields
+(`emailVerification`, `passwordReset`, and task `comments`) hold structured
+values; `skills` and `workFocus` are PostgreSQL arrays.
+
+## 2. Keys and functional dependencies
+
+The following dependencies follow from declared primary and unique keys. They
+assume IDs and emails are unique as constrained by the schema.
+
+| Table | Candidate key(s) | Key dependency |
 |---|---|---|
-| User | PRIMARY KEY (id) | Uniquely identifies users |
-| User | UNIQUE (email) | Prevents duplicate email values |
-| Team | PRIMARY KEY (id) | Uniquely identifies teams |
-| Task | PRIMARY KEY (id) | Uniquely identifies tasks |
-| Message | PRIMARY KEY (id) | Uniquely identifies messages |
-| PeerRating | PRIMARY KEY (id) | Uniquely identifies rating records |
-| PeerRating | UNIQUE (teamId, raterId, ratedUserId) | Prevents duplicate ratings for the same team and user combination |
+| `users` | `id`, `email` | `id → all other user columns`; `email → id and all other user columns` |
+| `teams` | `id` | `id → all other team columns` |
+| `team_members` | `id`, `(teamId, userId)` | Each candidate key determines all other membership columns |
+| `team_invitations` | `id`, `(teamId, userId)` | Each candidate key determines all other invitation columns |
+| `tasks` | `id` | `id → all other task columns` |
+| `task_assignees` | `id`, `(taskId, userId)` | Each candidate key determines all other assignment columns |
+| `messages` | `id` | `id → all other message columns` |
+| `peer_ratings` | `id`, `(teamId, raterId, ratedUserId)` | Each candidate key determines all other rating columns |
 
-Two additional indexes are defined:
+Foreign keys enforce that teams have an existing creator; memberships,
+invitations, and assignments refer to existing teams, users, and tasks; tasks
+refer to an existing team and creator (and optionally an assignee); messages
+refer to an existing team and sender; and ratings refer to an existing team,
+rater, and rated user.
 
-1. `PeerRating_teamId_updatedAt_idx`: Helps retrieve and order rating records by team and update time.
-2. `User_email_key`: Supports unique email lookups.
+## 3. Normal forms
 
-PostgreSQL automatically creates unique B-tree indexes for primary keys and unique constraints.
+### First Normal Form (1NF)
 
-### Referential Integrity Observation
+The relational attributes are single scalar values except for PostgreSQL array
+columns (`skills`, `workFocus`) and structured JSONB columns. Those fields can
+contain multiple values, so the schema does not satisfy strict 1NF if atomicity
+is required for every stored value. They are retained because the application
+uses skills/focus lists and nested verification, reset, and comment data. The
+many-to-many team membership and task assignment relationships are represented
+with separate tables rather than JSON arrays.
 
-The columns `teamId`, `raterId`, and `ratedUserId` appear to represent relationships with the `Team` and `User` tables.
+### Second Normal Form (2NF)
 
-However, the supplied schema does not declare foreign key constraints for these columns. Therefore, PostgreSQL does not currently enforce the existence of the referenced records.
+Every table has a single-column primary key, so no partial dependency exists
+relative to that primary key. However, `team_members`, `team_invitations`, and
+`task_assignees` and `peer_ratings` also have composite alternate candidate
+keys. Their name, email, role, and team-name snapshots may depend on only one
+component if they are meant to mirror the current user or team record; in that
+interpretation these tables are not in 2NF. If they record historical display
+values, that dependency does not hold. The key constraints alone cannot
+determine which interpretation the application intends.
 
-The actual relationship requirements should be confirmed before adding foreign key constraints.
+### Third Normal Form (3NF) and BCNF
 
----
+The foreign keys point to canonical team and user records, and join tables
+represent team membership and task assignments. The schema also stores
+repeated display fields such as `teamName`, `createdByName`, `assignee`,
+`userName`, and rating names/roles. If these are required to equal the current
+referenced row, they create transitive dependencies in single-key tables and
+partial dependencies in tables with composite candidate keys. Those tables
+would not meet 3NF/BCNF under that interpretation. If the fields are snapshots
+whose value is intentionally preserved when a referenced name changes, the
+dependencies do not hold. Since the schema does not enforce either policy,
+strict 3NF/BCNF status for those fields cannot be established from DDL alone.
 
-## 7. Conclusion
+The display fields can be kept as historical snapshots or removed from
+relational rows and retrieved through joins, depending on the desired behavior.
+The current schema preserves the app's fields and foreign keys, but does not
+enforce equality between snapshots and canonical names.
 
-The database uses a hybrid relational-document design with five tables and JSONB columns for flexible data storage.
+JSONB contents and arrays are outside these relational functional-dependency
+claims; their internal structure must be reviewed separately if strict
+normalization is required for those values.
 
-Based on the declared relational columns, all five tables satisfy 1NF, 2NF, 3NF, and BCNF.
+## 4. Integrity constraints and indexes
 
-The primary keys provide unique identification, while unique indexes enforce additional business rules, particularly for email addresses and peer ratings.
+- `users.email` is unique.
+- A user can belong to or be invited to a team once, enforced by unique
+  `(teamId, userId)` constraints.
+- A user can be assigned to a task once, enforced by unique `(taskId, userId)`.
+- A user can rate another user once per team, enforced by unique
+  `(teamId, raterId, ratedUserId)`.
+- Foreign keys enforce the relationships listed above. Team-owned rows cascade
+  when a team is deleted; user-owned membership, invitation, assignment,
+  message, and rating rows follow their declared cascade/restrict behavior.
+- Indexes support team/creator lookups, task status filtering, message ordering,
+  rating lookup/order, and related-user lookups.
 
-The main limitation of the current schema is that the internal structure of JSONB data is not explicitly defined. Consequently, its internal functional dependencies, atomicity, and normalization cannot be fully evaluated without examining actual JSON documents.
+## 5. Summary
 
-Overall, the declared relational structure provides a consistent foundation, while further validation of JSONB structures and intended table relationships would be necessary for a complete normalization assessment.
+The database is relational for its core entities and associations, with
+explicit constraints for identity and referential integrity. Repeating
+relationships use join tables. Arrays and selected JSONB fields remain
+multi-valued by design, and cached display names are intentional denormalized
+snapshots rather than authoritative relationship data.
